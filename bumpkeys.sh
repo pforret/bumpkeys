@@ -7,11 +7,11 @@
 ### 4. implement helper functions you defined in previous step
 ### ==============================================================================
 
-### Created by author_name ( author_username ) on meta_today
-### Based on https://github.com/pforret/bashew bashew_version
+### Created by Peter Forret ( pforret ) on 2021-01-23
+### Based on https://github.com/pforret/bashew 1.13.1
 script_version="0.0.1" # if there is a VERSION.md in this script's folder, it will take priority for version number
-readonly script_author="author@email.com"
-readonly script_created="meta_today"
+readonly script_author="peter@forret.com"
+readonly script_created="2021-01-23"
 readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 
 list_options() {
@@ -323,7 +323,7 @@ is_dir() { [[ -d "$1" ]]; }
 show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
   out "Updated: ${col_grn}$script_modified${col_reset}"
-  out "Description: package_description"
+  out "Description: Upgrade your SSH keys for better security"
   echo -n "Usage: $script_basename"
   list_options |
     awk '

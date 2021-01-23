@@ -1,6 +1,5 @@
-log/
-.idea/
-.template*
-.tmp
-.bashew*
 log
+.tmp
+*.tmp
+.env
+.idea
