@@ -40,11 +40,13 @@ flag|?|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
-
+flag|o|rfc4716|use RFC4716 key format (only on recent ssh installations)
+option|t|type|algorithm type for asymmetric keys: rsa/ed25519|ed25519
+option|a|trials|number of primality tests|100
+option|b|rsabits|key length for RSA key pairs|4096
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
-option|t|tmp_dir|folder for temp files|.tmp
 option|d|key_dir|SSH folder to check/upgrade|$HOME/.ssh
-param|1|action|action to perform: analyze/upgrade
+param|1|action|action to perform: analyze/create/protect
 " |
     grep -v '^#' |
     grep -v '^\s*$'
@@ -77,22 +79,25 @@ main() {
   case $action in
   check)
     #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
-    #TIP:> $script_prefix check
     do_check
     ;;
 
   analyze)
-    #TIP: use «$script_prefix analyze» to analyze an input file
-    #TIP:> $script_prefix analyze input.txt
-    # shellcheck disable=SC2154
+    #TIP: use «$script_prefix analyze» to analyze all SSH keys in the folder
+    #TIP:> $script_prefix analyze
     do_analyze
     ;;
 
-  upgrade)
-    #TIP: use «$script_prefix convert» to convert input into output
-    #TIP:> $script_prefix convert input.txt output.pdf
-    # shellcheck disable=SC2154
-    do_upgrade
+  create)
+    #TIP: use «$script_prefix create» to create new modern secure SSH key pair
+    #TIP:> $script_prefix create
+    do_create
+    ;;
+
+  protect)
+    #TIP: use «$script_prefix protect» to add password to existing key pairs
+    #TIP:> $script_prefix protect
+    do_protect
     ;;
 
   *)
@@ -119,7 +124,7 @@ do_analyze() {
 analyze_keyfile(){
   # $1 = $keyfile
   # 256 SHA256:23KxlRsmEhAd3+r2mBtJLRHyOtweEkO8HhHIOuVPY38 TEST KEY EC (ED25519)
-  key_name="$(basename "$1")"
+  key_name="$(basename "$1" .pub)"
   key_date=$(stat -s "$1" | tr ' ' "\n" | grep st_mtime | cut -d= -f2)
   key_day=$(date -r "$key_date" '+%Y-%m-%d')
   ssh-keygen -l -f "$1" |
@@ -131,28 +136,66 @@ analyze_keyfile(){
     printf("%-10s | %-20s | %-10s | %4s | %s\n","#created","filename","algorithm","bits","security");
     green="\033[32m";
     red="\033[31m";
+    orange="\033[1;33m";
     nocol="\033[0m";
+    security_ok=green "OK" nocol;
+    security_upg=orange "⚠️ UPGRADE!" nocol;
+    security_bad=red "🛑 UPGRADE!!" nocol;
   }
   {
     key_length=$1;
     algorithm="?";
-    security=green "OK" nocol;
+    security=security_ok;
     start=match($0,/\(\w+\)$/);
     if(start>0){
       algorithm=substr($0,start);
       gsub(/[\(\)]/,"",algorithm);
       }
-    if(algorithm == "RSA" && key_length < 2048){security = red "INSECURE!!" nocol};
-    if(algorithm == "ECDSA" && key_length < 256){security = red "INSECURE!!" nocol};
-    if(algorithm == "ED25519" && key_length < 256){security = red "INSECURE!!" nocol};
+    if(algorithm == "RSA" && key_length < 3072){security = security_upg};
+    if(algorithm == "RSA" && key_length < 2048){security = security_bad};
+    if(algorithm == "DSA" && key_length < 2048){security = security_bad};
+    if(algorithm == "ECDSA" && key_length < 512){security = security_upg};
+    if(algorithm == "ED25519" && key_length < 256){security = security_bad};
     printf("%10s | %-20s | %-10s | %4d | %s\n",key_day, key_name,algorithm,key_length,security);
   }'
 }
 
-do_upgrade() {
+do_create() {
   log_to_file "Upgrade [$key_dir]"
+  use_rfc=""
+  use_trials=""
+  # shellcheck disable=SC2154
+  ((rfc4716)) && use_rfc="-o" && use_trials="-a $trials"
+  ((rfc4716)) && announce "Use a password to protect your new keys, save it in a password manager!"
+
+  year=$(date '+%Y%m%d')
+  # shellcheck disable=SC2154
+  case "$type" in
+  rsa)
+    key_name=id_${type}${rsabits}_${year}
+    key_file="$key_dir/$key_name";
+    [[ -f "$key_file" ]] && die "Key [$key_file] already exists, delete or move it first"
+    confirm "Do you want to create a new RSA SSH keypair in [$key_dir]?" \
+    && ssh-keygen $use_rfc $use_trials -t $type -b $rsabits -f "$key_dir/$key_name"
+    out "New keys in: $key_dir/$key_name"
+    ;;
+  ed25519)
+    key_name=id_${type}_${year}
+    key_file="$key_dir/$key_name";
+    [[ -f "$key_file" ]] && die "Key [$key_file] already exists, delete or move it first"
+    confirm "Do you want to create a new EdDSA SSH keypair in [$key_dir]?" \
+    && ssh-keygen $use_rfc $use_trials -t $type -f "$key_dir/$key_name"
+    out "New keys in: $key_dir/$key_name"
+    ;;
+  esac
+
+
 }
 
+add_password(){
+  # $1 = keyfile
+  ssh-keygen -f "$1" -p -o -a 100
+}
 do_check(){
     echo -n "$char_succ Check dependencies: "
     list_dependencies | cut -d'|' -f1 | sort | xargs
