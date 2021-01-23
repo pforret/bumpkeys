@@ -18,4 +18,5 @@ test_analyze_works() {
   # test function hash
   assert "'$root_script' -d '$keys_folder' analyze"
   assert "'$root_script' -d '$keys_folder' analyze | grep OK"
+  assert "'$root_script' -d '$keys_folder' analyze | grep UPGRADE"
 }

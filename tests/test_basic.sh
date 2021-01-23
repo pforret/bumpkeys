@@ -12,7 +12,7 @@
 root_folder=$(cd .. && pwd) # tests/.. is root folder
 root_script="$root_folder/bumpkeys.sh"
 
-test_analyze_works() {
+test_bumpkeys_works() {
   # test function hash
-  assert "'$root_script'"
+  assert "$root_script"
 }

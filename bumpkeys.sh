@@ -75,6 +75,8 @@ main() {
   require_binaries
   log_to_file "[$script_basename] $script_version started"
 
+  # shellcheck disable=SC2154
+  [[ ! -d "$key_dir" ]] && die "folder [$key_dir] does not exist"
   action=$(lower_case "$action")
   case $action in
   check)
@@ -177,27 +179,62 @@ do_create() {
     [[ -f "$key_file" ]] && die "Key [$key_file] already exists, delete or move it first"
     # shellcheck disable=SC2086
     confirm "Do you want to create a new RSA SSH keypair in [$key_dir]?" \
-    && ssh-keygen $use_rfc $use_trials -t $type -b $rsabits -f "$key_dir/$key_name"
-    out "New keys in: $key_dir/$key_name"
+    && ssh-keygen $use_rfc $use_trials -t $type -b $rsabits -f "$key_file"
+    out "New keys in: $key_file"
     ;;
+
   ed25519)
     key_name=id_${type}_${year}
     key_file="$key_dir/$key_name";
     [[ -f "$key_file" ]] && die "Key [$key_file] already exists, delete or move it first"
     # shellcheck disable=SC2086
     confirm "Do you want to create a new EdDSA SSH keypair in [$key_dir]?" \
-    && ssh-keygen $use_rfc $use_trials -t $type -f "$key_dir/$key_name"
-    out "New keys in: $key_dir/$key_name"
+    && ssh-keygen $use_rfc $use_trials -t $type -f "$key_file"
+    out "New keys in: $key_file"
     ;;
+
+  *)
+    die "Only support rsa/ed25519 as algorithms, [$type] not supported"
   esac
 
 
 }
 
-add_password(){
-  # $1 = keyfile
-  ssh-keygen -f "$1" -p -o -a 100
+do_protect(){
+  log_to_file "protect [$key_dir]"
+  ask password "What password would you like to set?" ""
+  # shellcheck disable=SC2154
+  [[ -z "$password" ]] && announce "You are removing password protection from all keys"
+  for keyfile in "$key_dir/"id_*; do
+    protect_key "$keyfile" "$password"
+  done
 }
+
+protect_key(){
+  # $1 = keyfile
+  # $2 = password
+  announce "=== Protecting [$(basename "$1")]"
+  permissions=$(get_permissions "$1")
+  if [[ $(basename "$1") == $(basename "$1" .pub) ]] ; then
+    # private key
+    if [[ ! "$permissions" == "600" ]] ; then
+      #success "Setting permissions to 600"
+      chmod 600 "$1"
+    fi
+    ssh-keygen -q -p -N "$password" -o -a "$trials" -f "$1" 2>/dev/null
+  else
+    # public key
+    if [[ ! "$permissions" == "644" ]] ; then
+      #success "Setting permissions to 644"
+      chmod 644 "$1"
+    fi
+  fi
+}
+
+get_permissions(){
+  stat -s "$1" | tr ' ' "\n" | awk -F= '/st_mode/ {print($2,5,3)}'
+}
+
 do_check(){
     echo -n "$char_succ Check dependencies: "
     list_dependencies | cut -d'|' -f1 | sort | xargs
