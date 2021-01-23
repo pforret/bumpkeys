@@ -11,7 +11,7 @@
 #  fake ps echo hello world
 test_folder=$(dirname "$0")
 echo "Executing in [$test_folder]"
-root_folder=$(cd "$test_folder/.." && pwd) #
+root_folder=$(cd .. && pwd) # tests/.. is root folder
 echo "Root folder  [$root_folder]"
 
 root_script="$root_folder/bumpkeys.sh"
