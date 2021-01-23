@@ -10,6 +10,8 @@
 
 Upgrade your SSH keys for better security
 
+Inspired by [blog.g3rt.nl/upgrade-your-ssh-keys.html (2016)](https://blog.g3rt.nl/upgrade-your-ssh-keys.html) and [stribika.github.io/2015/01/04/secure-secure-shell.html (2015)](https://stribika.github.io/2015/01/04/secure-secure-shell.html)
+
 ## Installation
 
 with [basher](https://github.com/basherpm/basher)

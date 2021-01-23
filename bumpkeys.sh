@@ -36,22 +36,15 @@ list_options() {
   ###     will be available as $<long> in the script after option/param parsing
   echo -n "
 #commented lines will be filtered
-flag|h|help|show usage
+flag|?|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
 
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|.tmp
-option|w|width|width to use|800
-
-list|u|user|user(s) to execute this for
-
-secret|p|password|password to use
-
-param|1|action|action to perform: analyze/convert
-param|?|input|input file
-param|?|output|output file
+option|d|key_dir|SSH folder to check/upgrade|$HOME/.ssh
+param|1|action|action to perform: analyze/upgrade
 " |
     grep -v '^#' |
     grep -v '^\s*$'
@@ -66,8 +59,7 @@ list_dependencies() {
   # Example 3: a package with its own package manager: basher (shell), go get (golang), cargo (Rust)...
   #progressbar|basher install pforret/progressbar
   echo -n "
-gawk
-curl
+ssh-keygen
 " |
     grep -v "^#" |
     sort
@@ -93,14 +85,14 @@ main() {
     #TIP: use «$script_prefix analyze» to analyze an input file
     #TIP:> $script_prefix analyze input.txt
     # shellcheck disable=SC2154
-    do_analyze "$input"
+    do_analyze
     ;;
 
-  convert)
+  upgrade)
     #TIP: use «$script_prefix convert» to convert input into output
     #TIP:> $script_prefix convert input.txt output.pdf
     # shellcheck disable=SC2154
-    do_convert "$input" "$output"
+    do_upgrade
     ;;
 
   *)
@@ -117,13 +109,44 @@ main() {
 #####################################################################
 
 do_analyze() {
-  log_to_file "Analyze [$input]"
-  # < "$1"  do_analysis_stuff
+  # shellcheck disable=SC2154
+  log_to_file "Analyze [$key_dir]"
+  for keyfile in "$key_dir/"id_*; do
+    analyze_keyfile "$keyfile";
+  done | sort -u
 }
 
-do_convert() {
-  log_to_file "Convert [$input] -> [$output]"
-  # < "$1"  do_conversion_stuff > "$2"
+analyze_keyfile(){
+  # $1 = $keyfile
+  # 256 SHA256:23KxlRsmEhAd3+r2mBtJLRHyOtweEkO8HhHIOuVPY38 TEST KEY EC (ED25519)
+  keyname="$(basename "$1" .pub)"
+  keydate=$()
+  ssh-keygen -l -f "$1" |
+  awk -v keyname="$keyname" '
+  BEGIN {
+    printf("%-20s | %-10s | %4s | %s\n","#filename","algorithm","bits","security");
+    green="\033[32m";
+    red="\033[31m";
+    nocol="\033[0m";
+  }
+  {
+    keylength=$1;
+    algorithm="?";
+    security=green "OK" nocol;
+    start=match($0,/\(\w+\)$/);
+    if(start>0){
+      algorithm=substr($0,start);
+      gsub(/[\(\)]/,"",algorithm);
+      }
+    if(algorithm == "RSA" && keylength < 2048){security = red "INSECURE!!" nocol};
+    if(algorithm == "ECDSA" && keylength < 256){security = red "INSECURE!!" nocol};
+    if(algorithm == "ED25519" && keylength < 256){security = red "INSECURE!!" nocol};
+    printf("%-20s | %-10s | %4d | %s\n",keyname,algorithm,keylength,security);
+  }'
+}
+
+do_upgrade() {
+  log_to_file "Upgrade [$key_dir]"
 }
 
 do_check(){
