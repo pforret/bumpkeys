@@ -8,6 +8,8 @@
 
 # bumpkeys
 
+![Bumpkeys logo](assets/bumpkeys.jpg)
+
 Upgrade your SSH keys for better security
 
 Inspired by [Upgrade your SSH keys! (2016)](https://blog.g3rt.nl/upgrade-your-ssh-keys.html) and [Secure Secure Shell (2015)](https://stribika.github.io/2015/01/04/secure-secure-shell.html)
