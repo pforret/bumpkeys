@@ -10,9 +10,13 @@
 #  assert_not_equals "a string" "a string" "a string should be different from another string"
 #  fake ps echo hello world
 test_folder=$(dirname "$0")
+echo "Executing in [$test_folder]"
 root_folder=$(cd "$test_folder/.." && pwd) #
+echo "Root folder  [$root_folder]"
+
 root_script="$root_folder/bumpkeys.sh"
 keys_folder=$(cd "$test_folder/example_keys" && pwd) #
+echo "Keys folder  [$keys_folder]"
 
 
 test_analyze_works() {

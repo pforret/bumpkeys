@@ -175,6 +175,7 @@ do_create() {
     key_name=id_${type}${rsabits}_${year}
     key_file="$key_dir/$key_name";
     [[ -f "$key_file" ]] && die "Key [$key_file] already exists, delete or move it first"
+    # shellcheck disable=SC2086
     confirm "Do you want to create a new RSA SSH keypair in [$key_dir]?" \
     && ssh-keygen $use_rfc $use_trials -t $type -b $rsabits -f "$key_dir/$key_name"
     out "New keys in: $key_dir/$key_name"
@@ -183,6 +184,7 @@ do_create() {
     key_name=id_${type}_${year}
     key_file="$key_dir/$key_name";
     [[ -f "$key_file" ]] && die "Key [$key_file] already exists, delete or move it first"
+    # shellcheck disable=SC2086
     confirm "Do you want to create a new EdDSA SSH keypair in [$key_dir]?" \
     && ssh-keygen $use_rfc $use_trials -t $type -f "$key_dir/$key_name"
     out "New keys in: $key_dir/$key_name"

@@ -29,9 +29,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: install MacOS dependencies with brew install
-      run: brew install gawk
-
     - name: Check for basic execution
       run: ls ./*.sh | xargs bash
 
