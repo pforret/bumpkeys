@@ -119,18 +119,22 @@ do_analyze() {
 analyze_keyfile(){
   # $1 = $keyfile
   # 256 SHA256:23KxlRsmEhAd3+r2mBtJLRHyOtweEkO8HhHIOuVPY38 TEST KEY EC (ED25519)
-  keyname="$(basename "$1" .pub)"
-  keydate=$()
+  key_name="$(basename "$1")"
+  key_date=$(stat -s "$1" | tr ' ' "\n" | grep st_mtime | cut -d= -f2)
+  key_day=$(date -r "$key_date" '+%Y-%m-%d')
   ssh-keygen -l -f "$1" |
-  awk -v keyname="$keyname" '
+  awk \
+    -v key_day="$key_day" \
+    -v key_name="$key_name" \
+    '
   BEGIN {
-    printf("%-20s | %-10s | %4s | %s\n","#filename","algorithm","bits","security");
+    printf("%-10s | %-20s | %-10s | %4s | %s\n","#created","filename","algorithm","bits","security");
     green="\033[32m";
     red="\033[31m";
     nocol="\033[0m";
   }
   {
-    keylength=$1;
+    key_length=$1;
     algorithm="?";
     security=green "OK" nocol;
     start=match($0,/\(\w+\)$/);
@@ -138,10 +142,10 @@ analyze_keyfile(){
       algorithm=substr($0,start);
       gsub(/[\(\)]/,"",algorithm);
       }
-    if(algorithm == "RSA" && keylength < 2048){security = red "INSECURE!!" nocol};
-    if(algorithm == "ECDSA" && keylength < 256){security = red "INSECURE!!" nocol};
-    if(algorithm == "ED25519" && keylength < 256){security = red "INSECURE!!" nocol};
-    printf("%-20s | %-10s | %4d | %s\n",keyname,algorithm,keylength,security);
+    if(algorithm == "RSA" && key_length < 2048){security = red "INSECURE!!" nocol};
+    if(algorithm == "ECDSA" && key_length < 256){security = red "INSECURE!!" nocol};
+    if(algorithm == "ED25519" && key_length < 256){security = red "INSECURE!!" nocol};
+    printf("%10s | %-20s | %-10s | %4d | %s\n",key_day, key_name,algorithm,key_length,security);
   }'
 }
 
